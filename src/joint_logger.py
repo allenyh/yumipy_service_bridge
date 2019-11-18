@@ -35,7 +35,7 @@ class JointLogger:
         self.joints = list()
         for i in range(len(msgs_list)):
             if i == 0:
-                self.joints.append(float(msgs_list[i]))
+                self.joints.append(float(msgs_list[i])/10000) # convert to m, the value is 250 when the width is 25mm
             else:
                 self.joints.append(float(msgs_list[i]) * 0.017453292)  # convert to rad
         js.position = self.joints
@@ -50,7 +50,7 @@ class JointLogger:
         self.joints = list()
         for i in range(len(msgs_list)):
             if i == 0:
-                self.joints.append(float(msgs_list[i]))
+                self.joints.append(float(msgs_list[i])/10000) # convert to m, the value is 250 when the width is 25mm
             else:
                 self.joints.append(float(msgs_list[i]) * 0.017453292)  # convert to rad
         js.position = self.joints

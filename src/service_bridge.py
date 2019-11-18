@@ -3,12 +3,12 @@ import rospy
 from yumipy import YuMiRobot
 from yumipy.yumi_util import message_to_pose, message_to_state
 from yumipy_service_bridge.srv import Trigger, TriggerResponse, \
-    GetPose, GetPoseResponse, GetJoint, GetJointResponse, GetGripper, GetGripperResponse
+    GotoPose, GotoPoseResponse, GotoJoint, GotoJointResponse, MoveGripper, MoveGripperResponse, \
+    GetPose, GetPoseResponse
 
 
 class ServiceBridge:
     def __init__(self):
-        self.ns = rospy.get_namespace()
         robot = YuMiRobot(arm_type='remote')
         self.left_arm = robot.left
         self.right_arm = robot.right
@@ -16,21 +16,40 @@ class ServiceBridge:
         rospy.loginfo("[ServiceBridge] Node is up!")
 
     def _create_services(self):
-        rospy.Service(self.ns + "goto_pose", GPose, self.goto_pose_cb)
-        rospy.Service(self.ns + "goto_joints", GJoint, self.goto_joints_cb)
-        rospy.Service(self.ns + "close_gripper", Trigger, self.close_gripper_cb)
-        rospy.Service(self.ns + "open_gripper", Trigger, self.open_gripper_cb)
-        rospy.Service(self.ns + "move_gripper", GGripper, self.move_gripper_cb)
-        rospy.Service(self.ns + "get_gripper_width", Trigger, self.get_gripper_width)
-        #rospy.Service(self.ns + "set_speed", , self.set_speed_cb)
-        #rospy.Service(self.ns + "set_zone", , self.set_zone_cb)
-        rospy.Service(self.ns + "reset_home", Trigger, self.reset_home_cb)
-        rospy.Service(self.ns + "calibrate_gripper", Trigger, self.calibrate_gripper_cb)
-        rospy.Service(self.ns + "turn_on_suction", Trigger, self.turn_on_suction_cb)
-        rospy.Service(self.ns + "turn_off_suction", Trigger, self.turn_off_suction_cb)
+        rospy.Service("/get_pose", GetPose, self.get_pose_cb)
+        rospy.Service("/goto_pose", GotoPose, self.goto_pose_cb)
+        rospy.Service("/goto_joints", GotoJoint, self.goto_joints_cb)
+        rospy.Service("/close_gripper", Trigger, self.close_gripper_cb)
+        rospy.Service("/open_gripper", Trigger, self.open_gripper_cb)
+        rospy.Service("/move_gripper", MoveGripper, self.move_gripper_cb)
+        rospy.Service("/get_gripper_width", Trigger, self.get_gripper_width)
+        #rospy.Service("/set_speed", , self.set_speed_cb)
+        #rospy.Service("/set_zone", , self.set_zone_cb)
+        rospy.Service("/reset_home", Trigger, self.reset_home_cb)
+        rospy.Service("/calibrate_gripper", Trigger, self.calibrate_gripper_cb)
+        rospy.Service("/turn_on_suction", Trigger, self.turn_on_suction_cb)
+        rospy.Service("/turn_off_suction", Trigger, self.turn_off_suction_cb)
+
+    def get_pose_cb(self, req):
+        response = GetPoseResponse()
+        response.success = False
+        response.pose = list()
+        if req.arm != 'left' and req.arm != 'right':
+            return response
+        if req.arm == 'left':
+            arm = self.left_arm
+        elif req.arm == 'right':
+            arm = self.right_arm
+        res = arm.get_pose()
+        trans = res.translation
+        quat = res.quaternion
+        quat = [quat[1], quat[2], quat[3], quat[0]]  # change layout from wxyz to xyzw
+        response.pose = trans + quat
+        response.success = True
+        return response
 
     def goto_pose_cb(self, req):
-        response = GPoseResponse()
+        response = GotoPoseResponse()
         response.success = False
         if (req.arm != 'left' and req.arm != 'right') or len(req.position) != 3 or len(req.quat) != 4:
             return response
@@ -45,7 +64,7 @@ class ServiceBridge:
         return response
 
     def goto_joints_cb(self, req):
-        response = GJointResponse()
+        response = GotoJointResponse()
         response.success = False
         if (req.arm != 'left' and req.arm != 'right') or len(req.joint) != 7:
             return response
@@ -88,7 +107,7 @@ class ServiceBridge:
         return response
 
     def move_gripper_cb(self, req):
-        response = GGripperResponse()
+        response = MoveGripperResponse()
         response.success = False
         arm = None
         if req.arm == 'left':
