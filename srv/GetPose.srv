@@ -1,0 +1,5 @@
+string arm
+float64[] position
+float64[] quat
+---
+bool success

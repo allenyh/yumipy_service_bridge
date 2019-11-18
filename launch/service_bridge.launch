@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="pkg_name" default="yumipy_service_bridge"/>
+  <arg name="node_name" default="service_bridge"/>
+  <arg name="ns" default="service_bridge"/>
+
+  <group ns="$(arg ns)">
+    <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="$(arg node_name).py" output="screen"/>
+  </group>
+</launch>
