@@ -1,4 +1,2 @@
-string arm
 ---
-bool success
 float64[] pose

@@ -3,8 +3,7 @@ import rospy
 from yumipy import YuMiRobot
 from yumipy.yumi_util import message_to_pose, message_to_state
 from yumipy_service_bridge.srv import Trigger, TriggerResponse, \
-    GotoPose, GotoPoseResponse, GotoJoint, GotoJointResponse, MoveGripper, MoveGripperResponse, \
-    GetPose, GetPoseResponse
+    GotoPose, GotoPoseResponse, GotoJoint, GotoJointResponse, MoveGripper, MoveGripperResponse
 
 
 class ServiceBridge:
@@ -16,7 +15,6 @@ class ServiceBridge:
         rospy.loginfo("[ServiceBridge] Node is up!")
 
     def _create_services(self):
-        rospy.Service("/get_pose", GetPose, self.get_pose_cb)
         rospy.Service("/goto_pose", GotoPose, self.goto_pose_cb)
         rospy.Service("/goto_joints", GotoJoint, self.goto_joints_cb)
         rospy.Service("/close_gripper", Trigger, self.close_gripper_cb)
@@ -29,24 +27,6 @@ class ServiceBridge:
         rospy.Service("/calibrate_gripper", Trigger, self.calibrate_gripper_cb)
         rospy.Service("/turn_on_suction", Trigger, self.turn_on_suction_cb)
         rospy.Service("/turn_off_suction", Trigger, self.turn_off_suction_cb)
-
-    def get_pose_cb(self, req):
-        response = GetPoseResponse()
-        response.success = False
-        response.pose = list()
-        if req.arm != 'left' and req.arm != 'right':
-            return response
-        if req.arm == 'left':
-            arm = self.left_arm
-        elif req.arm == 'right':
-            arm = self.right_arm
-        res = arm.get_pose()
-        trans = res.translation
-        quat = res.quaternion
-        quat = [quat[1], quat[2], quat[3], quat[0]]  # change layout from wxyz to xyzw
-        response.pose = trans + quat
-        response.success = True
-        return response
 
     def goto_pose_cb(self, req):
         response = GotoPoseResponse()
