@@ -12,9 +12,9 @@ class JointLogger:
         self.ip = YMC.IP
         self.left_arm_port = YMC.PORTS['left']["states"]
         self.right_arm_port = YMC.PORTS['right']['states']
-        self.left_arm_name = ["gripper_l_joint", "yumi_joint_1_l", "yumi_joint_2_l", "yumi_joint_3_l",
+        self.left_arm_name = ["yumi_joint_1_l", "yumi_joint_2_l", "yumi_joint_3_l",
                               "yumi_joint_4_l", "yumi_joint_5_l", "yumi_joint_6_l", "yumi_joint_7_l"]
-        self.right_arm_name = ["gripper_r_joint", "yumi_joint_1_r", "yumi_joint_2_r", "yumi_joint_3_r",
+        self.right_arm_name = ["yumi_joint_1_r", "yumi_joint_2_r", "yumi_joint_3_r",
                                "yumi_joint_4_r", "yumi_joint_5_r", "yumi_joint_6_r", "yumi_joint_7_r"]
         self.left_arm_socket = socket.socket()
         self.right_arm_socket = socket.socket()
@@ -34,10 +34,10 @@ class JointLogger:
             return
         self.joints = list()
         for i in range(len(msgs_list)):
-            if i == 0:
-                self.joints.append(float(msgs_list[i])/10000) # convert to m, the value is 250 when the width is 25mm
-            else:
-                self.joints.append(float(msgs_list[i]) * 0.017453292)  # convert to rad
+            #if i == 0:
+            #    self.joints.append(float(msgs_list[i])/10000) # convert to m, the value is 250 when the width is 25mm
+            #else:
+            self.joints.append(float(msgs_list[i]) * 0.017453292)  # convert to rad
         js.position = self.joints
         self.joint_log_pub.publish(js)
 
@@ -49,10 +49,10 @@ class JointLogger:
             return
         self.joints = list()
         for i in range(len(msgs_list)):
-            if i == 0:
-                self.joints.append(float(msgs_list[i])/10000) # convert to m, the value is 250 when the width is 25mm
-            else:
-                self.joints.append(float(msgs_list[i]) * 0.017453292)  # convert to rad
+            #if i == 0:
+            #    self.joints.append(float(msgs_list[i])/10000) # convert to m, the value is 250 when the width is 25mm
+            #else:
+            self.joints.append(float(msgs_list[i]) * 0.017453292)  # convert to rad
         js.position = self.joints
         self.joint_log_pub.publish(js)
 
@@ -66,7 +66,7 @@ class JointLogger:
             return list()
         msgs = msgs[:index_exclam]
         msgs_list = msgs.split()
-        if len(msgs_list) != 8:
+        if len(msgs_list) != 7:
             return list()
         return msgs_list
 
