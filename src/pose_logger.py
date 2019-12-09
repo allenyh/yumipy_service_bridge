@@ -21,9 +21,9 @@ class JointLogger:
         msgs_list = self.process(msgs)
         if len(msgs_list) == 0:
             return
-        trans = [msgs_list[1]/1000, msgs_list[2]/1000, msgs_list[3]/1000] # unit: m
+        trans = [float(msgs_list[1])/1000, float(msgs_list[2])/1000, float(msgs_list[3])/1000] # unit: m
         quat = msgs_list[4:]
-        quat = [quat[1], quat[2], quat[3], quat[0]] # wxyz -> xyzw
+        quat = [float(quat[1]), float(quat[2]), float(quat[3]), float(quat[0])] # wxyz -> xyzw
         self.left_arm_pose = trans + quat
 
     def process(self, msgs):
