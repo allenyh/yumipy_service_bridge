@@ -47,6 +47,6 @@ class JointLogger:
 
 
 if __name__ == '__main__':
-    rospy.init_node('JointLogger')
+    rospy.init_node('PoseLogger')
     node = JointLogger()
     rospy.spin()

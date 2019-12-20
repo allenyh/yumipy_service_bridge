@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="connect_to_robot" default="true"/>
+    <group if="$(arg connect_to_robot)">
+        <include file="$(find yumipy_service_bridge)/launch/joint_logger.launch"/>
+        <include file="$(find yumipy_service_bridge)/launch/service_bridge.launch"/>
+        <include file="$(find yumipy_service_bridge)/launch/virtual_robot.launch"/>
+    </group>
+    <include file="$(find yumipy_service_bridge)/launch/pose_logger.launch"/>
+
+</launch>

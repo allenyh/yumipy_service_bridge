@@ -33,13 +33,19 @@ class ServiceBridge:
         response.success = False
         if (req.arm != 'left' and req.arm != 'right') or len(req.position) != 3 or len(req.quat) != 4:
             return response
-        pose = message_to_pose(req.position + req.quat)
+        pose = ''
+        for p in req.position:
+            pose += str(p) + ' '
+        for q in req.quat:
+            pose += str(q) + ' '
+        pose = message_to_pose(pose, 'tool')
+        print(pose)
         if req.arm == 'left':
-            if self.left_arm.is_pose_reachable(pose):
-                self.left_arm.goto_pose(pose)
+            #if self.left_arm.is_pose_reachable(pose):
+            self.left_arm.goto_pose(pose)
         else:
-            if self.right_arm.is_pose_reachable(pose):
-                self.right_arm.goto_pose(pose)
+            #if self.right_arm.is_pose_reachable(pose):
+            self.right_arm.goto_pose(pose)
         response.success = True
         return response
 
