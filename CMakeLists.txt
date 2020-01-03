@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   std_srvs
+  moveit_ros_planning_interface
   message_generation
 )
 
@@ -63,6 +64,7 @@ add_service_files(
   GotoPose.srv
   MoveGripper.srv
   Trigger.srv
+  SetZ.srv
 )
 
 ## Generate actions in the 'action' folder

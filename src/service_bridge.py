@@ -1,16 +1,21 @@
 #!/usr/bin/env python
 import rospy
-from yumipy import YuMiRobot
+from yumipy import YuMiRobot, YuMiMotionPlanner
 from yumipy.yumi_util import message_to_pose, message_to_state
-from yumipy_service_bridge.srv import Trigger, TriggerResponse, \
-    GotoPose, GotoPoseResponse, GotoJoint, GotoJointResponse, MoveGripper, MoveGripperResponse
+from yumipy_service_bridge.srv import Trigger, TriggerResponse, GetPose, GetPoseResponse, \
+    GotoPose, GotoPoseResponse, GotoJoint, GotoJointResponse, MoveGripper, MoveGripperResponse, \
+    SetZ, SetZResponse, GotoJointRequest
 
 
 class ServiceBridge:
     def __init__(self):
-        robot = YuMiRobot(arm_type='remote')
-        self.left_arm = robot.left
-        self.right_arm = robot.right
+        #self.left_arm_planner = YuMiMotionPlanner(arm='left')
+        #self.right_arm_planner = YuMiMotionPlanner(arm='right')
+        self.robot = YuMiRobot(arm_type='remote')
+        self.left_arm = self.robot.left
+        self.right_arm = self.robot.right
+        #self.left_arm.set_motion_planner()
+        #self.right_arm.set_motion_planner()
         self._create_services()
         rospy.loginfo("[ServiceBridge] Node is up!")
 
@@ -22,11 +27,13 @@ class ServiceBridge:
         rospy.Service("/move_gripper", MoveGripper, self.move_gripper_cb)
         rospy.Service("/get_gripper_width", Trigger, self.get_gripper_width)
         #rospy.Service("/set_speed", , self.set_speed_cb)
-        #rospy.Service("/set_zone", , self.set_zone_cb)
+        rospy.Service("/set_zone", SetZ, self.set_zone_cb)
         rospy.Service("/reset_home", Trigger, self.reset_home_cb)
         rospy.Service("/calibrate_gripper", Trigger, self.calibrate_gripper_cb)
         rospy.Service("/turn_on_suction", Trigger, self.turn_on_suction_cb)
         rospy.Service("/turn_off_suction", Trigger, self.turn_off_suction_cb)
+        rospy.Service("goto_wait_joint", Trigger, self.goto_wait_joint_cb)
+        rospy.Service("goto_scan_joint", Trigger, self.goto_scan_joint_cb)
 
     def goto_pose_cb(self, req):
         response = GotoPoseResponse()
@@ -39,13 +46,13 @@ class ServiceBridge:
         for q in req.quat:
             pose += str(q) + ' '
         pose = message_to_pose(pose, 'tool')
-        print(pose)
         if req.arm == 'left':
             #if self.left_arm.is_pose_reachable(pose):
-            self.left_arm.goto_pose(pose)
+            self.left_arm.goto_pose_shortest_path(pose, wait_for_res=req.wait_for_res)
         else:
             #if self.right_arm.is_pose_reachable(pose):
-            self.right_arm.goto_pose(pose)
+            print("wait for res: {}".format(req.wait_for_res))
+            self.right_arm.goto_pose_shortest_path(pose, wait_for_res=req.wait_for_res)
         response.success = True
         return response
 
@@ -54,11 +61,14 @@ class ServiceBridge:
         response.success = False
         if (req.arm != 'left' and req.arm != 'right') or len(req.joint) != 7:
             return response
-        state = message_to_state(req.joint)
+        joints = ''
+        for j in req.joint:
+            joints += str(j) + ' '
+        state = message_to_state(joints)
         if req.arm == 'left':
-            self.left_arm.goto_pose(state)
+            self.left_arm.goto_state(state)
         else:
-            self.right_arm.goto_pose(state)
+            self.right_arm.goto_state(state)
         response.success = True
         return response
 
@@ -114,8 +124,11 @@ class ServiceBridge:
     # def set_speed_cb(self, req):
     #     # TODO write
     #
-    # def set_zone_cb(self, req):
-    #     # TODO write
+    def set_zone_cb(self, req):
+        zone_value = req.z
+        self.robot.set_z(zone_value)
+
+        return SetZResponse()
 
     def get_gripper_width(self, req):
         response = TriggerResponse()
@@ -191,6 +204,23 @@ class ServiceBridge:
             return response
         response.message = 'Successfully Turn off {} suction'.format(req.arm)
         return response
+
+    def goto_wait_joint_cb(self, req):
+        srv = rospy.ServiceProxy("/goto_joints", GotoJoint)
+        request = GotoJointRequest()
+        request.arm = 'right'
+        request.joint = [71.09, -99.14, 10.14, 90.87, 5.60, 25.18, -48.47]
+        srv(request)
+        return TriggerResponse()
+
+    def goto_scan_joint_cb(self, req):
+        srv = rospy.ServiceProxy("/goto_joints", GotoJoint)
+        request = GotoJointRequest()
+        request.arm = 'right'
+        request.joint = [73.23, -101.93, 21.97, 135.4, -70.09, -2.19, -53.44]
+        srv(request)
+        return TriggerResponse()
+
 
 
 if __name__ == '__main__':

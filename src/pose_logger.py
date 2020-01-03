@@ -13,18 +13,30 @@ class JointLogger:
         self.left_arm_pose = list()
         self.left_arm_socket = socket.socket()
         self.left_arm_socket.connect((self.ip, self.left_arm_port))
+        self.right_arm_port = YMC.PORTS['right']["poses"]
+        self.right_arm_pose = list()
+        self.right_arm_socket = socket.socket()
+        self.right_arm_socket.connect((self.ip, self.right_arm_port))
         self.timer = rospy.Timer(rospy.Duration(0.003), self.logCallBack)
         rospy.Service("/get_pose", GetPose, self.get_pose_cb)
 
+
     def logCallBack(self, event):
-        msgs = self.left_arm_socket.recv(100)
-        msgs_list = self.process(msgs)
+        msgs_list = self.process(self.left_arm_socket.recv(100))
         if len(msgs_list) == 0:
             return
         trans = [float(msgs_list[1])/1000, float(msgs_list[2])/1000, float(msgs_list[3])/1000] # unit: m
         quat = msgs_list[4:]
         quat = [float(quat[1]), float(quat[2]), float(quat[3]), float(quat[0])] # wxyz -> xyzw
         self.left_arm_pose = trans + quat
+
+        msgs_list = self.process(self.right_arm_socket.recv(100))
+        if len(msgs_list) == 0:
+            return
+        trans = [float(msgs_list[1]) / 1000, float(msgs_list[2]) / 1000, float(msgs_list[3]) / 1000]  # unit: m
+        quat = msgs_list[4:]
+        quat = [float(quat[1]), float(quat[2]), float(quat[3]), float(quat[0])]  # wxyz -> xyzw
+        self.right_arm_pose = trans + quat
 
     def process(self, msgs):
         index_pound = msgs.find('#')
@@ -42,7 +54,10 @@ class JointLogger:
 
     def get_pose_cb(self, req):
         res = GetPoseResponse()
-        res.pose = self.left_arm_pose
+        if req.arm == 'left':
+            res.pose = self.left_arm_pose
+        elif req.arm == 'right':
+            res.pose = self.right_arm_pose
         return res
 
 

@@ -2,10 +2,19 @@
 <launch>
     <arg name="connect_to_robot" default="true"/>
     <group if="$(arg connect_to_robot)">
+        <include file="$(find yumipy)/launch/yumi_arms.launch">
+            <arg name="ns" value="/"/>
+        </include>
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+        <node name="robot_to_cam" pkg="tf" type="static_transform_publisher" args="0.35210628201698474 -0.044453848628362193 0.54533874056479005 0.71204911,  0.00090682, -0.70212474,  0.00246994 base_link camera_link 100" />
+        <include file="$(find yumi_moveit_config)/launch/move_group.launch">
+            <arg name="pipeline" value="ompl"/>
+        </include>
         <include file="$(find yumipy_service_bridge)/launch/joint_logger.launch"/>
         <include file="$(find yumipy_service_bridge)/launch/service_bridge.launch"/>
-        <include file="$(find yumipy_service_bridge)/launch/virtual_robot.launch"/>
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find yumi_description)/yumi.rviz"/>
     </group>
     <include file="$(find yumipy_service_bridge)/launch/pose_logger.launch"/>
+    <include file="$(find realsense2_camera)/launch/rs_rgbd.launch"/>
 
 </launch>
