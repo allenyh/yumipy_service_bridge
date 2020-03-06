@@ -2,19 +2,23 @@
 <launch>
     <arg name="connect_to_robot" default="true"/>
     <group if="$(arg connect_to_robot)">
+        <include file="$(find yumi_moveit_config)/launch/move_group.launch">
+            <arg name="pipeline" value="ompl"/>
+        </include>
         <include file="$(find yumipy)/launch/yumi_arms.launch">
             <arg name="ns" value="/"/>
         </include>
         <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
-        <node name="robot_to_cam" pkg="tf" type="static_transform_publisher" args="0.35210628201698474 -0.044453848628362193 0.54533874056479005 0.71204911,  0.00090682, -0.70212474,  0.00246994 base_link camera_link 100" />
-        <include file="$(find yumi_moveit_config)/launch/move_group.launch">
-            <arg name="pipeline" value="ompl"/>
-        </include>
+        <node name="robot_to_cam" pkg="tf" type="static_transform_publisher" args="0.36605488 -0.03194282  0.54544781, 0.70819836  0.00903295 -0.70595376 -0.00166536 base_link camera_link 100" />
+        <node name="left_arm_to_suction" pkg="tf" type="static_transform_publisher" args="0.0635 0.0185 0.0375 0 0 0 1 gripper_l_base suction_l 100" />
+        <node name="right_arm_to_suction" pkg="tf" type="static_transform_publisher" args="0.0635 0.0185 0.0375 0 0 0 1 gripper_r_base suction_r 100" />
         <include file="$(find yumipy_service_bridge)/launch/joint_logger.launch"/>
         <include file="$(find yumipy_service_bridge)/launch/service_bridge.launch"/>
         <node name="rviz" pkg="rviz" type="rviz" args="-d $(find yumi_description)/yumi.rviz"/>
     </group>
     <include file="$(find yumipy_service_bridge)/launch/pose_logger.launch"/>
     <include file="$(find realsense2_camera)/launch/rs_rgbd.launch"/>
-
+    <node name="fcn_prediction" pkg="nn_predict" type="fcn_prediction.py"/>
+    <node name="keyence_reader" pkg="keyence_barcode_reader" type="keyence_main.py"/>
+    <!--node name="flatten_node" pkg="utils" type="click_point.py"/-->
 </launch>

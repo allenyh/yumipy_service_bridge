@@ -1,0 +1,7 @@
+bool wait_for_res
+float64[] position_left
+float64[] quat_left
+float64[] position_right
+float64[] quat_right
+---
+bool success
