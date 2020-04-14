@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-   <node name="logger" pkg="yumipy_service_bridge" type="joint_logger.py" output="screen"/>
+   <node name="joint_logger" pkg="yumipy_service_bridge" type="joint_logger.py" output="screen"/>
 </launch>

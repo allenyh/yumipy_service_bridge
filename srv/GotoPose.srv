@@ -1,4 +1,5 @@
 string arm
+bool wait_for_res
 float64[] position
 float64[] quat
 ---
