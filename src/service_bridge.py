@@ -1,18 +1,23 @@
 #!/usr/bin/env python
 import rospy
+from std_srvs.srv import Trigger, TriggerResponse
 from yumipy import YuMiRobot, YuMiMotionPlanner
 from yumipy.yumi_util import message_to_pose, message_to_state
-from yumipy_service_bridge.srv import Trigger, TriggerResponse, GetPose, GetPoseResponse, \
+from yumipy_service_bridge.srv import YumipyTrigger, YumipyTriggerResponse, GetPose, GetPoseResponse, \
     GotoPose, GotoPoseResponse, GotoJoint, GotoJointResponse, MoveGripper, MoveGripperResponse, \
     SetZ, SetZResponse, GotoJointRequest, GotoPoseRequest, GotoPoseSync, GotoPoseSyncRequest, \
     SetTool, SetToolResponse
 
 
+radian2degree = 57.29577951308232
+
 class ServiceBridge:
     def __init__(self):
         self.robot = YuMiRobot(arm_type='remote')
         self.left_arm = self.robot.left
+        self.left_arm.calibrate_gripper()
         self.right_arm = self.robot.right
+        self.right_arm.calibrate_gripper()
         self._create_services()
         rospy.loginfo("[ServiceBridge] Node is up!")
         self.current_tool_l = 'gripper'
@@ -22,25 +27,29 @@ class ServiceBridge:
             'suction': [63.5, 18.5, 37.5, 0, 0, 0, 1],
             'calibration': [0, 0, 0, 0, 0, 0, 1]
         }
+        self.arms_wait_joint = {'left': [-1.53013010964, -2.31535371672, 0.57962382732,
+                                         1.8151423679999998, 1.8772760875199999, 0.037873643639999996, 0.36808992828],
+                                'right': [1.5475834016399999, -2.3253020931599995, 0.58520888076,
+                                          4.45861797432, 1.8971728404, -0.04206243372, -0.34033919399999996]}
 
     def _create_services(self):
         rospy.Service("~/goto_pose", GotoPose, self.goto_pose_cb)
         rospy.Service("~/goto_pose_plan", GotoPose, self.goto_pose_plan_cb)
         rospy.Service("~/goto_pose_sync", GotoPoseSync, self.goto_pose_sync_cb)
         rospy.Service("~/goto_joints", GotoJoint, self.goto_joints_cb)
-        rospy.Service("~/close_gripper", Trigger, self.close_gripper_cb)
-        rospy.Service("~/open_gripper", Trigger, self.open_gripper_cb)
+        rospy.Service("~/close_gripper", YumipyTrigger, self.close_gripper_cb)
+        rospy.Service("~/open_gripper", YumipyTrigger, self.open_gripper_cb)
         rospy.Service("~/move_gripper", MoveGripper, self.move_gripper_cb)
-        rospy.Service("~/get_gripper_width", Trigger, self.get_gripper_width)
+        rospy.Service("~/get_gripper_width", YumipyTrigger, self.get_gripper_width)
         #rospy.Service("/set_speed", , self.set_speed_cb)
         rospy.Service("~/set_tool", SetTool, self.set_tool_cb)
         rospy.Service("~/set_zone", SetZ, self.set_zone_cb)
-        rospy.Service("~/reset_home", Trigger, self.reset_home_cb)
-        rospy.Service("~/calibrate_gripper", Trigger, self.calibrate_gripper_cb)
-        rospy.Service("~/turn_on_suction", Trigger, self.turn_on_suction_cb)
-        rospy.Service("~/turn_off_suction", Trigger, self.turn_off_suction_cb)
-        rospy.Service("~/goto_wait_joint", Trigger, self.goto_wait_joint_cb)
-        rospy.Service("~/goto_scan_joint", Trigger, self.goto_scan_joint_cb)
+        rospy.Service("~/reset_home", YumipyTrigger, self.reset_home_cb)
+        rospy.Service("~/calibrate_gripper", YumipyTrigger, self.calibrate_gripper_cb)
+        rospy.Service("~/turn_on_suction", YumipyTrigger, self.turn_on_suction_cb)
+        rospy.Service("~/turn_off_suction", YumipyTrigger, self.turn_off_suction_cb)
+        rospy.Service("~/goto_wait_pose", Trigger, self.goto_wait_pose_cb)
+        rospy.Service("~/goto_wait_joint", YumipyTrigger, self.goto_wait_joint_cb)
 
     def goto_pose_cb(self, req):
         response = GotoPoseResponse()
@@ -85,7 +94,7 @@ class ServiceBridge:
         response.success = False
         if len(req.position_left) != 3 or len(req.quat_left) != 4 or len(req.position_right) != 3 \
                 or len(req.quat_right) != 4:
-            rospy.logerr('one of the position of quat info is incorrect')
+            rospy.logerr('one of the position or quat info is incorrect')
             return response
         pose_left = ''
         for p in req.position_left:
@@ -120,7 +129,7 @@ class ServiceBridge:
         return response
 
     def close_gripper_cb(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             self.left_arm.close_gripper()
@@ -135,7 +144,7 @@ class ServiceBridge:
         return response
 
     def open_gripper_cb(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             self.left_arm.open_gripper()
@@ -158,7 +167,7 @@ class ServiceBridge:
         elif req.arm == 'right':
             arm = self.right_arm
         if arm is not None:
-            if req.width < 0:
+            if req.width <= 0:
                 arm.close_gripper()
             elif req.width >= 0.025:
                 arm.open_gripper()
@@ -195,7 +204,7 @@ class ServiceBridge:
         return SetToolResponse()
 
     def get_gripper_width(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             width = self.left_arm.get_gripper_width()
@@ -210,7 +219,7 @@ class ServiceBridge:
         return response
 
     def reset_home_cb(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             pose = '364.3 291.6 123.39 0.06213 0.86746 -0.10842 0.48156'
@@ -244,7 +253,7 @@ class ServiceBridge:
         return response
 
     def calibrate_gripper_cb(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             self.left_arm.calibrate_gripper()
@@ -259,7 +268,7 @@ class ServiceBridge:
         return response
 
     def turn_on_suction_cb(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             self.left_arm.turn_on_suction()
@@ -274,7 +283,7 @@ class ServiceBridge:
         return response
 
     def turn_off_suction_cb(self, req):
-        response = TriggerResponse()
+        response = YumipyTriggerResponse()
         response.success = True
         if req.arm == 'left':
             self.left_arm.turn_off_suction()
@@ -288,22 +297,41 @@ class ServiceBridge:
         response.message = 'Successfully Turn off {} suction'.format(req.arm)
         return response
 
+    def goto_wait_pose_cb(self, req):
+        arms_quat = {'left': [0, 0, -0.9238795, 0.3826834], 'right': [0, 0, 0.9238795, 0.3826834]}
+        arms_wait_pose = {'left': [356, 200, 100], 'right': [356, -200, 100]}
+        pose = ''
+        for p in arms_wait_pose['left']:
+            pose += str(p) + ' '
+        for q in arms_quat['left']:
+            pose += str(q) + ' '
+        pose = message_to_pose(pose, 'tool')
+        self.left_arm.goto_pose_shortest_path(pose, tool=self.current_tool_l)
+        pose = ''
+        for p in arms_wait_pose['right']:
+            pose += str(p) + ' '
+        for q in arms_quat['right']:
+            pose += str(q) + ' '
+        pose = message_to_pose(pose, 'tool')
+        self.right_arm.goto_pose_shortest_path(pose, tool=self.current_tool_r)
+        return TriggerResponse()
+
     def goto_wait_joint_cb(self, req):
-        srv = rospy.ServiceProxy("/goto_joints", GotoJoint)
-        request = GotoJointRequest()
-        request.arm = 'right'
-        request.joint = [71.09, -99.14, 10.14, 90.87, 5.60, 25.18, -48.47]
-        srv(request)
-        return TriggerResponse()
-
-    def goto_scan_joint_cb(self, req):
-        srv = rospy.ServiceProxy("/goto_joints", GotoJoint)
-        request = GotoJointRequest()
-        request.arm = 'right'
-        request.joint = [73.23, -101.93, 21.97, 135.4, -70.09, -2.19, -53.44]
-        srv(request)
-        return TriggerResponse()
-
+        if req.arm == 'left':
+            left_joint = self.arms_wait_joint['left']
+            state = ""
+            for j in left_joint:
+                state += str(j*radian2degree) + ' '
+            state = message_to_state(state)
+            self.left_arm.goto_state(state)
+        elif req.arm == 'right':
+            right_joint = self.arms_wait_joint['right']
+            state = ""
+            for j in right_joint:
+                state += str(j * radian2degree) + ' '
+            state = message_to_state(state)
+            self.right_arm.goto_state(state)
+        return YumipyTriggerResponse()
 
 
 if __name__ == '__main__':

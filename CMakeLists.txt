@@ -62,9 +62,11 @@ add_service_files(
   GotoJoint.srv
   GetPose.srv
   GotoPose.srv
+  GotoPoseSync.srv
   MoveGripper.srv
-  Trigger.srv
+  YumipyTrigger.srv
   SetZ.srv
+  SetTool.srv
 )
 
 ## Generate actions in the 'action' folder
